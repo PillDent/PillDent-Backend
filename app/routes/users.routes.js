@@ -12,6 +12,6 @@ const router = express.Router();
 // Profile User Routes
 router.get('/:username/profile', authMiddleware, getUserProfile);
 router.put('/:username/profile', authMiddleware, updateProfile);
-router.delete('/username/:username/profile', authMiddleware, deleteUserById);
+router.delete('/users/:username/profile', authMiddleware, deleteUserById);
 
 export default router;

@@ -248,6 +248,7 @@ const logout = async (req, res) => {
     console.log(authorization);
     console.log(req.user); // undifined
     const { uid, email } = req.user;
+    console.log(uid);
     console.log(email);
     if (!authorization || !authorization.startsWith('Bearer ')) {
       throw new Error('Unauthorized');

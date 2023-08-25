@@ -7,7 +7,6 @@ import db from '../config/firebase.config.js';
 
 import { verifyUsers } from '../middlewares/authorization.middleware.js';
 
-import getRandomElements from '../utils/random.js';
 import { badResponse, successResponse } from '../utils/response.js';
 
 const filename = fileURLToPath(import.meta.url);

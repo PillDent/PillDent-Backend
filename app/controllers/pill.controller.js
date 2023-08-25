@@ -7,12 +7,23 @@ import { readFileSync } from 'fs';
 
 import getRandomElements from '../utils/random.js';
 import { badResponse, successResponse } from '../utils/response.js';
+import { verifyUsers } from '../middlewares/authorization.middleware.js';
+import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+import { storage, bucketName } from '../config/storage.config.js';
+import db from '../config/firebase.config.js';
+import predictionModel from '../models/image.model.js';
+import { dateTimeNow } from '../utils/time.js';
+
 import {
   checkUsers,
   checkPill,
   checkAllPill,
   checkAllCategory,
 } from '../utils/snapshot.js';
+
+const multerStorage = multer.memoryStorage();
+const upload = multer({ storage: multerStorage });
 
 const filename = fileURLToPath(import.meta.url);
 const filedirname = dirname(filename);
@@ -203,4 +214,151 @@ const getPillById = async (req, res) => {
   }
 };
 
-export { getHomeData, searchPill, getAllCategories, getPillById };
+const scanPill = async (req, res) => {
+  try {
+    upload.single('image')(req, res, async (err) => {
+      if (err instanceof multer.MulterError) {
+        console.error('Error saat mengunggah file:', err);
+        const response = badResponse(
+          500,
+          'Terjadi kesalahan saat mengunggah gambar.'
+        );
+        return res.status(500).json(response);
+      }
+      if (err) {
+        console.error('Error saat mengunggah file', err);
+        const response = badResponse(
+          500,
+          'Terjadi kesalahan saat mengunggah gambar.'
+        );
+        return res.status(500).json(response);
+      }
+      const { uid } = req.user;
+      const { username } = req.params;
+
+      // Check User
+      const { errorUser, statusUser, checkResponseUser, userData } =
+        await verifyUsers(username, uid);
+
+      if (errorUser) {
+        return res.status(statusUser).json(checkResponseUser);
+      }
+
+      const { file } = req;
+
+      if (!req.file) {
+        const response = badResponse(400, 'Tidak ada file yang diunggah.');
+        return res.status(400).json(response);
+      }
+
+      // Cek ukuran file
+      const maxSizeInBytes = 10 * 1024 * 1024; // 10 MB
+
+      if (file.size > maxSizeInBytes) {
+        const response = badResponse(
+          413,
+          'Ukuran gambar melebihi batas maksimum.'
+        );
+        return res.status(413).json(response);
+      }
+
+      const subCategory = 'speaker';
+
+      const predictionResult = await predictionModel(file, subCategory);
+
+      if (predictionResult.success) {
+        const imageId = uuidv4();
+        const originalFileName = file.originalname;
+        const fileName = `${originalFileName
+          .split('.')
+          .slice(0, -1)
+          .join('.')}_${username}.${originalFileName.split('.').pop()}`.replace(
+          /\s+/g,
+          '_'
+        );
+        const filePath = `pill/${subCategory}/${fileName}`;
+        const blob = storage.bucket(bucketName).file(filePath);
+
+        const blobStream = blob.createWriteStream({
+          metadata: {
+            contentType: file.mimetype,
+          },
+          predefinedAcl: 'publicRead', // Membuat gambar otomatis public
+        });
+
+        blobStream.on('error', (error) => {
+          console.error('Error saat mengunggah file:', error);
+          const response = badResponse(
+            500,
+            'Terjadi kesalahan saat mengunggah gambar.'
+          );
+          return res.status(500).json(response);
+        });
+
+        blobStream.on('finish', async () => {
+          const publicUrl = `https://storage.googleapis.com/${bucketName}/${filePath}`;
+
+          try {
+            const pillScanResult = db.collection('scan-result').doc();
+            const pillScanid = pillScanResult.id;
+
+            const pillScanResultData = {
+              pillScanId: pillScanid,
+              imageUrl: publicUrl,
+              create_at: dateTimeNow(),
+              image_id: imageId,
+              username,
+            };
+
+            // Simpan data produk ke koleksi produk di Firestore
+            await db
+              .collection('scan-result')
+              .doc(pillScanResultData.pillScanId)
+              .set(pillScanResultData);
+
+            const responseData = { ...pillScanResultData };
+            delete responseData.username;
+
+            const response = successResponse(
+              200,
+              'Success scan pill ',
+              responseData
+            );
+            return res.status(200).json(response);
+          } catch (error) {
+            console.error('Error :', error);
+            const response = badResponse(
+              500,
+              'An error occurred while scan pill',
+              error.message
+            );
+            return res.status(500).json(response);
+          }
+        });
+
+        blobStream.end(file.buffer);
+      } else {
+        const { errorMessage } = predictionResult;
+        console.error('Error :', errorMessage);
+        const response = badResponse(
+          400,
+          'Category dan gambar yang di input tidak sesuai',
+          errorMessage
+        );
+        return res.status(400).json(response);
+      }
+      return null;
+    });
+    return null;
+  } catch (error) {
+    console.error('Error saat mengunggah file:', error);
+    const response = badResponse(
+      500,
+      'An error occurred while upload images',
+      error.message
+    );
+    return res.status(500).json(response);
+  }
+};
+
+export { getHomeData, searchPill, getAllCategories, getPillById, scanPill };

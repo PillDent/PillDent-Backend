@@ -283,7 +283,7 @@ const scanPill = async (req, res) => {
           metadata: {
             contentType: file.mimetype,
           },
-          predefinedAcl: 'publicRead', // Membuat gambar otomatis public
+          predefinedAcl: 'publicRead',
         });
 
         blobStream.on('error', (error) => {
@@ -310,13 +310,16 @@ const scanPill = async (req, res) => {
               username,
             };
 
-            // Simpan data produk ke koleksi produk di Firestore
+            // Simpan data scan ke koleksi result-scan di Firestore
             await db
               .collection('scan-result')
               .doc(pillScanResultData.pillScanId)
               .set(pillScanResultData);
 
-            const responseData = { ...pillScanResultData };
+            const responseData = {
+              ...pillScanResultData,
+              pill_data: 'Result From Machine Learning',
+            };
             delete responseData.username;
 
             const response = successResponse(

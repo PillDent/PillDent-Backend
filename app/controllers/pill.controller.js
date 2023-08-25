@@ -46,7 +46,7 @@ const getHomeData = async (req, res) => {
   try {
     const allPill = await checkAllPill();
 
-    console.log('Working 26 Aug Tengah Malam');
+    console.log('Working 26 Aug Tengah Malam 2');
 
     const pills = allPill.docs.map((doc) => doc.data());
 

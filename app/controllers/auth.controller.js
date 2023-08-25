@@ -245,8 +245,11 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   try {
     const { authorization } = req.headers;
-    console.log(req.user);
-    console.log(req.headers);
+    console.log(authorization);
+    console.log(req.user); // undifined
+    const { uid, email } = req.user;
+    console.log(uid);
+    console.log(email);
     if (!authorization || !authorization.startsWith('Bearer ')) {
       throw new Error('Unauthorized');
     }

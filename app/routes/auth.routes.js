@@ -1,5 +1,5 @@
 import express from 'express';
-// import { authMiddleware } from '../middlewares/authentication.middlewares.js';
+import { authMiddleware } from '../middlewares/authentication.middlewares.js';
 
 import {
   login,
@@ -20,6 +20,6 @@ router.post('/login', login);
 router.post('/password-reset', forgetPassword);
 
 // Logout router
-router.post('/logout', logout);
+router.post('/logout', authMiddleware, logout);
 
 export default router;

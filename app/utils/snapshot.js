@@ -1,7 +1,7 @@
 import db from '../config/firebase.config.js';
 import { badResponse } from './response.js';
 
-// Check Renter
+// Check User
 const checkUsers = async (userId) => {
   try {
     const userSnapshot = await db.collection('users').doc(userId).get();
@@ -34,7 +34,7 @@ const checkUsers = async (userId) => {
   }
 };
 
-// Check Product
+// Check Pill
 const checkPill = async (pillId) => {
   try {
     const pillSnapshot = await db.collection('pill').doc(pillId).get();
@@ -55,19 +55,55 @@ const checkPill = async (pillId) => {
       pillRef,
     };
   } catch (error) {
-    console.error('Error while checking product:', error);
+    console.error('Error while checking pill:', error);
     return {
       errorPill: true,
       statusPill: 500,
       checkResponsePill: badResponse(
         500,
-        'An error occurred while checking product'
+        'An error occurred while checking pill'
       ),
     };
   }
 };
 
-// get All Product
+// Check Schedule
+const checkSchedule = async (scheduleId) => {
+  try {
+    const scheduleSnapshot = await db
+      .collection('schedules')
+      .doc(scheduleId)
+      .get();
+
+    if (!scheduleSnapshot.exists) {
+      return {
+        errorSchedule: true,
+        statusSchedule: 404,
+        checkResponseSchedule: badResponse(404, 'Schedule not found'),
+      };
+    }
+    const scheduleData = scheduleSnapshot.data();
+    const scheduleRef = scheduleSnapshot.ref;
+
+    return {
+      errorSchedule: false,
+      scheduleData,
+      scheduleRef,
+    };
+  } catch (error) {
+    console.error('Error while checking Schedule:', error);
+    return {
+      errorSchedule: true,
+      statusSchedule: 500,
+      checkResponseSchedule: badResponse(
+        500,
+        'An error occurred while checking Schedule'
+      ),
+    };
+  }
+};
+
+// get All Pill
 const checkAllPill = async () => {
   const allPill = await db.collection('pill').get();
 
@@ -81,4 +117,4 @@ const checkAllCategory = async () => {
   return allCategory;
 };
 
-export { checkAllPill, checkAllCategory, checkUsers, checkPill };
+export { checkAllPill, checkAllCategory, checkUsers, checkPill, checkSchedule };

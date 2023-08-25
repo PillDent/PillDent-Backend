@@ -38,6 +38,7 @@ const getUserProfile = async (req, res) => {
       return res.status(statusUser).json(checkResponseUser);
     }
     const responseData = userData;
+    console.log(userData);
 
     const response = successResponse(
       200,
@@ -148,13 +149,13 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// Delete Account user Handler
+// Delete Account User Handler
 const deleteUserById = async (req, res) => {
   try {
     const { username } = req.params;
     const { uid } = req.user;
 
-    const { errorUser, statusUser, checkResponseUser, userData, userRef } =
+    const { errorUser, statusUser, checkResponseUser, userRef } =
       await verifyUsers(username, uid);
 
     if (errorUser) {
@@ -164,22 +165,7 @@ const deleteUserById = async (req, res) => {
     // Hapus user
     await userRef.delete();
 
-    // Hapus data lessor yang terkait dengan user tersebut
-    const lessorSnapshot = await db
-      .collection('lessors')
-      .where('username', '==', userData.username)
-      .get();
-
-    if (!lessorSnapshot.empty) {
-      const lessorId = lessorSnapshot.docs[0].id;
-      const lessorRef = db.collection('lessors').doc(lessorId);
-      await lessorRef.delete();
-    }
-
-    const response = successResponse(
-      200,
-      'User and associated lessor deleted successfully'
-    );
+    const response = successResponse(200, 'User  deleted successfully');
     return res.json(response);
   } catch (error) {
     console.error('Error while deleting user:', error);
